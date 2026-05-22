@@ -9,6 +9,16 @@ def load_css(path: Path) -> None:
         st.markdown(f"<style>{path.read_text()}</style>", unsafe_allow_html=True)
 
 
+@st.cache_resource
+def load_model():
+    return pickle.load(open(MODEL_PATH, "rb"))
+
+
+@st.cache_resource
+def load_vectorizer():
+    return pickle.load(open(VECTORIZER_PATH, "rb"))
+
+
 st.set_page_config(
     page_title="Real or Fake Job Description Classifier",
     page_icon="🚨",
@@ -65,8 +75,8 @@ if not MODEL_PATH.exists() or not VECTORIZER_PATH.exists():
         "Model files not found. Ensure `model.pkl` and `vectorizer.pkl` are in the same folder as this app."
     )
 else:
-    model = pickle.load(open(MODEL_PATH, "rb"))
-    vectorizer = pickle.load(open(VECTORIZER_PATH, "rb"))
+    model = load_model()
+    vectorizer = load_vectorizer()
 
     st.markdown('<div class="form-card">', unsafe_allow_html=True)
     with st.form(key="job_form"):
