@@ -1,44 +1,3 @@
-# import pandas as pd
-# import numpy as np
-# import pickle
-# from flask import Flask, render_template, request, jsonify, flash
-
-
-# app = Flask(__name__)
-# model = pickle.load(open('model.pkl', 'rb'))
-# vectorizer = pickle.load(open('vectorizer.pkl', 'rb'))
-# app.config['SECRET_KEY'] = "secret lol"
-
-# @app.route("/")
-# def Home():
-#     return render_template('index.html')
-
-
-# @app.route("/submit", methods=['POST'])
-# def submit():
-
-#     # The input data
-#     input_data = [request.form['title']+' '+ request.form['location']+' '+request.form['department']+' '+request.form['profile']+' '+request.form['req']+' '+request.form['ben']+' '+request.form['emptype']+' '+request.form['exp']+' '+request.form['edu']+' '+request.form['indu']+' '+request.form['func']+' '+request.form['des']]
-
-
-#     # convert text to feature vectors
-#     input_data_features = vectorizer.transform(input_data)
-
-#     # making prediction
-#     prediction = model.predict(input_data_features)
-#     print(prediction)
-
-#     if (prediction[0] == 1):
-#         flash("FRAUDULENT JOB")
-#         return render_template('index.html')
-
-#     else:
-#         flash("REAL JOB")
-#         return render_template('index.html')
-
-# if __name__ == "__main__":
-#     app.run(debug=True, host='0.0.0.0', port=5000)
-
 import pickle
 from pathlib import Path
 
@@ -46,18 +5,29 @@ import streamlit as st
 
 
 def load_css(path: Path) -> None:
-    if path.exists():
-        st.markdown(f"<style>{path.read_text()}</style>", unsafe_allow_html=True)
+    try:
+        if path.exists():
+            st.markdown(f"<style>{path.read_text()}</style>", unsafe_allow_html=True)
+    except Exception as e:
+        st.warning(f"Could not load CSS: {str(e)}")
 
 
 @st.cache_resource
 def load_model():
-    return pickle.load(open(MODEL_PATH, "rb"))
+    try:
+        return pickle.load(open(MODEL_PATH, "rb"))
+    except Exception as e:
+        st.error(f"Error loading model: {str(e)}")
+        return None
 
 
 @st.cache_resource
 def load_vectorizer():
-    return pickle.load(open(VECTORIZER_PATH, "rb"))
+    try:
+        return pickle.load(open(VECTORIZER_PATH, "rb"))
+    except Exception as e:
+        st.error(f"Error loading vectorizer: {str(e)}")
+        return None
 
 
 st.set_page_config(
@@ -66,18 +36,21 @@ st.set_page_config(
     layout="wide",
 )
 
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR
-if not (DATA_DIR / "model.pkl").exists() or not (DATA_DIR / "vectorizer.pkl").exists():
-    alt_data_dir = BASE_DIR / "ml"
-    if alt_data_dir.exists():
-        DATA_DIR = alt_data_dir
-MODEL_PATH = DATA_DIR / "model.pkl"
-VECTORIZER_PATH = DATA_DIR / "vectorizer.pkl"
-IMAGE_PATH = DATA_DIR / "static" / "img1.png"
-STYLE_PATH = DATA_DIR / "static" / "style.css"
-
-load_css(STYLE_PATH)
+try:
+    BASE_DIR = Path(__file__).resolve().parent
+    DATA_DIR = BASE_DIR
+    if not (DATA_DIR / "model.pkl").exists() or not (DATA_DIR / "vectorizer.pkl").exists():
+        alt_data_dir = BASE_DIR / "ml"
+        if alt_data_dir.exists():
+            DATA_DIR = alt_data_dir
+    MODEL_PATH = DATA_DIR / "model.pkl"
+    VECTORIZER_PATH = DATA_DIR / "vectorizer.pkl"
+    IMAGE_PATH = DATA_DIR / "static" / "img1.png"
+    STYLE_PATH = DATA_DIR / "static" / "style.css"
+    
+    load_css(STYLE_PATH)
+except Exception as e:
+    st.error(f"Error initializing paths: {str(e)}")
 
 st.markdown(
     """
@@ -116,75 +89,82 @@ if not MODEL_PATH.exists() or not VECTORIZER_PATH.exists():
         "Model files not found. Ensure `model.pkl` and `vectorizer.pkl` are in the same folder as this app."
     )
 else:
-    model = load_model()
-    vectorizer = load_vectorizer()
+    try:
+        model = load_model()
+        vectorizer = load_vectorizer()
+        
+        if model is None or vectorizer is None:
+            st.error("Failed to load model or vectorizer.")
+            st.stop()
+        
+        st.markdown('<div class="form-card">', unsafe_allow_html=True)
+        with st.form(key="job_form"):
+            st.markdown("### Job Posting Details")
 
-    st.markdown('<div class="form-card">', unsafe_allow_html=True)
-    with st.form(key="job_form"):
-        st.markdown("### Job Posting Details")
+            title = st.text_input("Job Title")
 
-        title = st.text_input("Job Title")
+            col_left, col_right = st.columns(2, gap="large")
+            with col_left:
+                location = st.text_input("Location")
+                benefits = st.text_input("Benefits")
+                education = st.text_input("Required Education")
+                industry = st.text_input("Industry")
 
-        col_left, col_right = st.columns(2, gap="large")
-        with col_left:
-            location = st.text_input("Location")
-            benefits = st.text_input("Benefits")
-            education = st.text_input("Required Education")
-            industry = st.text_input("Industry")
+            with col_right:
+                department = st.text_input("Department")
+                employment_type = st.selectbox(
+                    "Employment Type",
+                    ["", "Full-Time", "Part-Time", "Contract", "Temporary", "Other"],
+                )
+                experience = st.selectbox(
+                    "Required Experience",
+                    [
+                        "",
+                        "Internship",
+                        "Entry level",
+                        "Associate",
+                        "Mid-Senior level",
+                        "Director",
+                        "Executive",
+                        "Not applicable",
+                        "Other",
+                    ],
+                )
+                function = st.text_input("Function")
 
-        with col_right:
-            department = st.text_input("Department")
-            employment_type = st.selectbox(
-                "Employment Type",
-                ["", "Full-Time", "Part-Time", "Contract", "Temporary", "Other"],
-            )
-            experience = st.selectbox(
-                "Required Experience",
+            profile = st.text_area("Company Profile", height=140)
+            requirements = st.text_area("Requirements", height=140)
+            description = st.text_area("Description", height=140)
+
+            predict_button = st.form_submit_button("Predict")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if predict_button:
+            combined_text = " ".join(
                 [
-                    "",
-                    "Internship",
-                    "Entry level",
-                    "Associate",
-                    "Mid-Senior level",
-                    "Director",
-                    "Executive",
-                    "Not applicable",
-                    "Other",
-                ],
-            )
-            function = st.text_input("Function")
+                    title,
+                    location,
+                    department,
+                    benefits,
+                    employment_type,
+                    experience,
+                    education,
+                    industry,
+                    function,
+                    profile,
+                    requirements,
+                    description,
+                ]
+            ).strip()
 
-        profile = st.text_area("Company Profile", height=140)
-        requirements = st.text_area("Requirements", height=140)
-        description = st.text_area("Description", height=140)
-
-        predict_button = st.form_submit_button("Predict")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    if predict_button:
-        combined_text = " ".join(
-            [
-                title,
-                location,
-                department,
-                benefits,
-                employment_type,
-                experience,
-                education,
-                industry,
-                function,
-                profile,
-                requirements,
-                description,
-            ]
-        ).strip()
-
-        if not combined_text:
-            st.warning("Please fill in at least one field before predicting.")
-        else:
-            transformed_text = vectorizer.transform([combined_text])
-            prediction = model.predict(transformed_text)
-            if prediction[0] == 1:
-                st.error("⚠ Fake Job Posting")
+            if not combined_text:
+                st.warning("Please fill in at least one field before predicting.")
             else:
-                st.success("✅ Real Job Posting")
+                transformed_text = vectorizer.transform([combined_text])
+                prediction = model.predict(transformed_text)
+                if prediction[0] == 1:
+                    st.error("⚠ Fake Job Posting")
+                else:
+                    st.success("✅ Real Job Posting")
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
