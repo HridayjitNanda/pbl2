@@ -1,7 +1,13 @@
 import pickle
 from pathlib import Path
 import streamlit as st
-st.write("APP STARTED")
+
+# Configure page FIRST - this must be the first Streamlit command
+st.set_page_config(
+    page_title="Real or Fake Job Description Classifier",
+    page_icon="🚨",
+    layout="wide",
+)
 
 # Initialize paths FIRST before any functions
 BASE_DIR = Path(__file__).resolve().parent
@@ -45,13 +51,6 @@ def load_vectorizer():
         st.error(f"Error loading vectorizer: {str(e)}")
         return None
 
-
-# Now configure page
-st.set_page_config(
-    page_title="Real or Fake Job Description Classifier",
-    page_icon="🚨",
-    layout="wide",
-)
 
 # Load CSS
 load_css(STYLE_PATH)
