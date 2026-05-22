@@ -1,6 +1,7 @@
 import pickle
 from pathlib import Path
 import streamlit as st
+st.write("APP STARTED")
 
 # Initialize paths FIRST before any functions
 BASE_DIR = Path(__file__).resolve().parent
@@ -84,7 +85,7 @@ with hero_left:
 with hero_right:
     try:
         if IMAGE_PATH.exists():
-            st.image(IMAGE_PATH.read_bytes(), width=400)
+            st.image(str(IMAGE_PATH), width=400)
         else:
             st.warning("Image not found: static/img1.png")
     except Exception as e:
